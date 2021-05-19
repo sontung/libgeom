@@ -26,6 +26,7 @@ def dot(a, b):
 
 def ray_intersects_triangle(ray_origin, ray_vector, triangle):
     """
+    [optimized]
     Möller–Trumbore ray-triangle intersection algorithm
     (https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm)
     :param ray_origin:

@@ -1,6 +1,7 @@
 import meshio
 import numpy as np
 import utils
+import time
 import marching_cube
 import math_utils
 import open3d as o3d
@@ -9,13 +10,14 @@ from pykdtree.kdtree import KDTree as Fast_Kd_Tree
 from collections import namedtuple
 
 
-def surface_reconstruct_marching_cube(point_cloud):
+def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir="test_models/airbag.obj", cube_size=0.75, isovalue=4):
     """
     reconstruct the surface of a point cloud using marching cube algorithm
     :param point_cloud:
     :return:
     """
-    a_step = 0.1
+    a_step = cube_size
+    # isovalue = 4
 
     bounding_box = point_cloud.get_axis_aligned_bounding_box()
     min_bound = bounding_box.min_bound-a_step
@@ -49,10 +51,25 @@ def surface_reconstruct_marching_cube(point_cloud):
                              dist_dict[stu2cnt_dict[indices[4]]], dist_dict[stu2cnt_dict[indices[5]]],
                              dist_dict[stu2cnt_dict[indices[6]]], dist_dict[stu2cnt_dict[indices[7]]]]
                 cell = GridCell(coord, distances)
-                tri, _ = marching_cube.march_cube(cell)
+                tri, _ = marching_cube.march_cube(cell, isovalue)
                 triangles.extend(tri)
     print("created: ", len(triangles))
-    utils.create_obj_file(triangles)
+    utils.create_obj_file(triangles, mesh_saved_dir)
+
+    # visualization
+    original_mesh = o3d.io.read_triangle_mesh(mesh_saved_dir)
+    vis = o3d.visualization.Visualizer()
+    original_mesh_wf = o3d.geometry.LineSet.create_from_triangle_mesh(original_mesh)
+    original_mesh_wf.paint_uniform_color([0, 0, 0])
+    vis.create_window()
+    ctr = vis.get_view_control()
+    vis.add_geometry(original_mesh_wf)
+    ang = 0
+    while True:
+        ctr.rotate(10, 0.0)
+        ang += 10
+        vis.poll_events()
+        vis.update_renderer()
 
 
 def surface_reconstruct_marching_cube_with_vis(point_cloud):
@@ -61,7 +78,8 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
     :param point_cloud:
     :return:
     """
-    a_step = 0.1
+    a_step = 5
+    isovalue = 4
 
     bounding_box = point_cloud.get_axis_aligned_bounding_box()
     min_bound = bounding_box.min_bound-a_step
@@ -83,7 +101,7 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
 
     vis = o3d.visualization.Visualizer()
     vis.create_window()
-    vis.add_geometry(point_cloud)
+    # vis.add_geometry(point_cloud)
     ctr = vis.get_view_control()
     current_angle = 0
 
@@ -101,7 +119,7 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
                              dist_dict[stu2cnt_dict[indices[4]]], dist_dict[stu2cnt_dict[indices[5]]],
                              dist_dict[stu2cnt_dict[indices[6]]], dist_dict[stu2cnt_dict[indices[7]]]]
                 cell = GridCell(coord, distances)
-                tri, cube_index = marching_cube.march_cube(cell)
+                tri, cube_index = marching_cube.march_cube(cell, isovalue)
 
                 if len(tri) > 0:
                     triangles.extend(tri)
@@ -131,17 +149,30 @@ def remove_inside_mesh(vertices, faces):
     :param faces:
     :return:
     """
+    start = time.time()
     center = np.mean(vertices, axis=0)
     remove_list = {}
-
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    ctr = vis.get_view_control()
-    current_angle = 0
-
+    remove_vertices = {}
+    keep_vertices = {}
+    face_status = {(x, y, z): -1 for x, y, z in faces}  # -1 unknown 0 remove 1 keep
     for i in range(vertices.shape[0]):
         vector = vertices[i] - center
         for x, y, z in faces:
+            if face_status[(x, y, z)] >= 0:
+                continue
+            if remove_vertices.get(x, False) or remove_vertices.get(y, False) or remove_vertices.get(z, False):
+                remove_list[(x, y, z)] = 1
+                remove_vertices[x] = 1
+                remove_vertices[y] = 1
+                remove_vertices[z] = 1
+                face_status[(x, y, z)] = 0
+                continue
+            if keep_vertices.get(x, False) or keep_vertices.get(y, False) or keep_vertices.get(z, False):
+                face_status[(x, y, z)] = 1
+                keep_vertices[x] = 1
+                keep_vertices[y] = 1
+                keep_vertices[z] = 1
+                continue
             if remove_list.get((x, y, z), False):
                 continue
             triangle = [vertices[x], vertices[y], vertices[z]]
@@ -149,22 +180,80 @@ def remove_inside_mesh(vertices, faces):
             if intersect is not None:
                 d1 = distance_function(intersect, center)
                 d2 = distance_function(vertices[i], center)
-                if round(d1, 5) < round(d2, 5):
-                    remove_list[(x, y, z)] = 1
+                if round(d1, 5) < round(d2, 5):  # remove
                     print(d1, d2)
-                    for geom in utils.visualize_tri_o3d(triangle):
-                        vis.add_geometry(geom)
-                        ctr.rotate(current_angle, 0.0)
+                    remove_list[(x, y, z)] = 1
+                    remove_vertices[x] = 1
+                    remove_vertices[y] = 1
+                    remove_vertices[z] = 1
+                    face_status[(x, y, z)] = 0
+                else:  # keep
+                    face_status[(x, y, z)] = 1
+                    keep_vertices[x] = 1
+                    keep_vertices[y] = 1
+                    keep_vertices[z] = 1
 
-                ctr.rotate(5.0, 0.0)
-                current_angle += 1.0
+        # update faces
+        done = True
+        for k in face_status:
+            if face_status[k] < 0:
+                done = False
+        if done:
+            break
 
-        if i % 10 == 0:
-            vis.poll_events()
-            vis.update_renderer()
-            print(len(remove_list))
+    print("done in", time.time()-start, "removing %d tri" % len(remove_list))
+    return remove_list, face_status
+
+
+def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphere.obj"):
+    """
+    remove the mesh which is inside a bigger mesh
+    """
+    original_mesh = o3d.io.read_triangle_mesh(mesh_dir)
+    vis = o3d.visualization.Visualizer()
+    original_mesh_wf = o3d.geometry.LineSet.create_from_triangle_mesh(original_mesh)
+    original_mesh_wf.paint_uniform_color([1, 1, 0])
+    vis.create_window()
+    ctr = vis.get_view_control()
+    vis.add_geometry(original_mesh_wf)
+
+    print("processing")
+    remove_list, face_status = remove_inside_mesh(vertices, faces)
+    print("done processing")
+
+    # write repaired mesh
+    kept_face = np.zeros((sum(face_status.values()), 3), dtype=np.int)
+    ind = 0
+    for k in face_status:
+        if face_status[k] == 1:
+            kept_face[ind] = k
+            ind += 1
+    kept_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices),
+                                          o3d.utility.Vector3iVector(kept_face))
+    o3d.io.write_triangle_mesh("test_models/repaired_mesh.obj", kept_mesh)
+
+    # visualize removed mesh
+    remove_face = np.zeros((len(remove_list), 3), dtype=np.int)
+    for i, k in enumerate(remove_list):
+        remove_face[i] = k
+    remove_mesh = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(vertices),
+                                            o3d.utility.Vector3iVector(remove_face))
+    wf_mesh = o3d.geometry.LineSet.create_from_triangle_mesh(remove_mesh)
+    wf_mesh.paint_uniform_color([1, 0, 0])
+    vis.add_geometry(wf_mesh)
+    ang = 0
+    while True:
+        ctr.rotate(0.0, 0.0)
+        vis.poll_events()
+        vis.update_renderer()
+        ang += 10
 
 
 if __name__ == '__main__':
-    a_mesh = meshio.read("test_models/test_sphere.obj")
-    remove_inside_mesh(a_mesh.points, a_mesh.cells_dict["triangle"])
+    pcd = o3d.io.read_point_cloud("test_models/airbag.pcd")
+    pcd_array = np.asarray(pcd.points)
+    # surface_reconstruct_marching_cube_with_vis(pcd)
+    # surface_reconstruct_marching_cube(pcd, cube_size=5, isovalue=4)
+    mdir = "test_models/airbag.obj"
+    a_mesh = meshio.read(mdir)
+    remove_inside_mesh_with_vis(a_mesh.points, a_mesh.cells_dict["triangle"], mdir)
