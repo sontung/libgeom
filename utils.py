@@ -2,7 +2,7 @@ import numpy as np
 import open3d as o3d
 
 
-def visualize_unit_cube(cube, p_tri=None):
+def visualize_unit_cube(cube, p_tri=None, added_cube_box=False):
     """
     draw a triangle and a cube in open3d (used in visualizing of the marching cube algorithm)
     :param cube:
@@ -15,21 +15,25 @@ def visualize_unit_cube(cube, p_tri=None):
 
     bb.color = (1, 0, 0)
 
+    geom = []
+    if added_cube_box:
+        geom.append(bb)
+
     if p_tri is None:
         # pass
-        return []
+        return geom
 
     lines = []
     for i in range(0, len(p_tri), 3):
         lines.extend([[i, i+1], [i+1, i+2], [i, i+2]])
 
-    line_color = [[0, 0, 1], [0, 0, 1], [0, 0, 1]]
+    line_color = [[0, 0, 0.5], [0, 0, 0.5], [0, 0, 0.5]]
     line_pcd = o3d.geometry.LineSet()
     line_pcd.lines = o3d.utility.Vector2iVector(lines)
     line_pcd.colors = o3d.utility.Vector3dVector(line_color)
     line_pcd.points = o3d.utility.Vector3dVector(p_tri)
-
-    return [line_pcd]
+    geom.append(line_pcd)
+    return geom
 
 
 def visualize_tri_o3d(p_tri):
@@ -76,6 +80,8 @@ def create_obj_file(triangles, save_file='model/airbag.obj'):
                 s = "v %f %f %f\n" % (peak[0], peak[1], peak[2])
                 s_face.append(s)
             face_numbers = (adict[s_face[0]], adict[s_face[1]], adict[s_face[2]])
-            f_line = "f %d %d %d\n" % face_numbers
-            file.write(f_line)
-            print(f_line, file=file)
+            if adict[s_face[0]] != adict[s_face[1]] \
+                    and adict[s_face[1]] != adict[s_face[2]] \
+                    and adict[s_face[0]] != adict[s_face[2]]:
+                f_line = "f %d %d %d\n" % face_numbers
+                print(f_line, file=file)
