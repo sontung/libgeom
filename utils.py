@@ -1,5 +1,6 @@
 import numpy as np
 import open3d as o3d
+import sys
 
 
 def visualize_unit_cube(cube, p_tri=None, added_cube_box=False):
@@ -85,3 +86,19 @@ def create_obj_file(triangles, save_file='model/airbag.obj'):
                     and adict[s_face[0]] != adict[s_face[2]]:
                 f_line = "f %d %d %d\n" % face_numbers
                 print(f_line, file=file)
+
+
+def read_obj_file_texture_coords(filename):
+    sys.stdin = open(filename, "r")
+    lines = sys.stdin.readlines()
+    vert = []
+    face = []
+    for line in lines:
+        components = line[:-1].split(" ")
+        if components[0] == "v":
+            vert.append(components[1:])
+        elif components[0] == "f":
+            x_, y_, z_ = map(lambda du: int(du.split("/")[0])-1, components[1:])
+            face.append([x_, y_, z_])
+    return np.array(vert).astype(np.float), np.array(face).astype(np.int)
+

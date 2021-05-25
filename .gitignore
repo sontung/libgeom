@@ -131,3 +131,4 @@ dmypy.json
 .idea/
 saved/
 *.gif
+test_models/
