@@ -64,10 +64,8 @@ def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir="test_models/a
     vis.create_window()
     ctr = vis.get_view_control()
     vis.add_geometry(original_mesh_wf)
-    ang = 0
     while True:
         ctr.rotate(10, 0.0)
-        ang += 10
         vis.poll_events()
         vis.update_renderer()
 
@@ -212,7 +210,7 @@ def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphe
     original_mesh = o3d.io.read_triangle_mesh(mesh_dir)
     vis = o3d.visualization.Visualizer()
     original_mesh_wf = o3d.geometry.LineSet.create_from_triangle_mesh(original_mesh)
-    original_mesh_wf.paint_uniform_color([1, 1, 0])
+    original_mesh_wf.paint_uniform_color([0, 0, 1])
     vis.create_window()
     ctr = vis.get_view_control()
     vis.add_geometry(original_mesh_wf)
@@ -242,11 +240,12 @@ def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphe
     wf_mesh.paint_uniform_color([1, 0, 0])
     vis.add_geometry(wf_mesh)
     ang = 0
-    while True:
-        ctr.rotate(0.0, 0.0)
+    while ang <= 2000:
+        ctr.rotate(10.0, 0.0)
         vis.poll_events()
         vis.update_renderer()
         ang += 10
+        vis.capture_screen_image("saved/%d.png" % ang)
 
 
 if __name__ == '__main__':
