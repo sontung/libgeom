@@ -89,6 +89,11 @@ def create_obj_file(triangles, save_file='model/airbag.obj'):
 
 
 def read_obj_file_texture_coords(filename):
+    """
+    read an obj file with texture coordinates
+    :param filename:
+    :return:
+    """
     sys.stdin = open(filename, "r")
     lines = sys.stdin.readlines()
     vert = []

@@ -132,3 +132,4 @@ dmypy.json
 saved/
 *.gif
 test_models/
+*.lprof
