@@ -342,11 +342,13 @@ def loop_subdivision(vertices, triangles, save_name=None, vis=False):
         if vert_deg == 2:
             vert = vertices[vert_id]*0.75 + vertices[neighbors[0]]/8 + vertices[neighbors[1]]/8
         elif vert_deg == 3:
-            beta = 3/16.0
-            vert = vertices[vert_id] * (1 - vert_deg * beta) + np.sum(vertices[neighbors] * beta)
+            beta = 0.1875
+            arr = np.array(vertices[neighbors]).sum(axis=0)
+            vert = vertices[vert_id] * (1 - vert_deg * beta) + arr * beta
         else:
-            beta = 3/8.0/vert_deg
-            vert = vertices[vert_id] * (1 - vert_deg * beta) + np.sum(vertices[neighbors] * beta)
+            beta = 0.375/vert_deg
+            arr = np.array(vertices[neighbors]).sum(axis=0)
+            vert = vertices[vert_id] * (1 - vert_deg * beta) + arr * beta
         new_even_vertices[vert_id] = vert
 
     triangles2 = np.zeros((len(triangles)+len(new_faces), 3), np.int)
