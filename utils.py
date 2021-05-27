@@ -37,6 +37,32 @@ def visualize_unit_cube(cube, p_tri=None, added_cube_box=False):
     return geom
 
 
+def triangles2mesh(triangles):
+	vertices = []
+	faces = []
+    idx = 1
+	adict = {}
+	for tri in triangles:
+		s = "v %f %f %f\n" % (tri[0], tri[1], tri[2])
+		if s not in adict:
+		    adict[s] = idx
+		    idx += 1
+	for s in adict:
+		vertices.append(s)
+
+	for i in range(0, len(triangles), 3):
+		s_face = []
+		for peak in triangles[i: i+3]:
+		    s = "v %f %f %f\n" % (peak[0], peak[1], peak[2])
+		    s_face.append(s)
+		face_numbers = (adict[s_face[0]], adict[s_face[1]], adict[s_face[2]])
+		if adict[s_face[0]] != adict[s_face[1]] \
+		        and adict[s_face[1]] != adict[s_face[2]] \
+		        and adict[s_face[0]] != adict[s_face[2]]:
+		    faces.append(face_numbers)
+	return vertices, faces
+
+
 def visualize_tri_o3d(p_tri):
     """
     draw a triangle in open3d

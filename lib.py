@@ -70,7 +70,7 @@ def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None, if_vis=F
             ctr.rotate(10, 0.0)
             vis.poll_events()
             vis.update_renderer()
-    return triangles
+    return utils.triangles2mesh(triangles)
 
 
 def surface_reconstruct_marching_cube_with_vis(point_cloud):
