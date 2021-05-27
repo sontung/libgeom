@@ -43,17 +43,17 @@ def triangles2mesh(triangles):
     idx = 1
     adict = {}
     for tri in triangles:
-        s = "v %f %f %f\n" % (tri[0], tri[1], tri[2])
+        s = "%f %f %f" % (tri[0], tri[1], tri[2])
         if s not in adict:
             adict[s] = idx
             idx += 1
     for s in adict:
-        vertices.append(s)
+        vertices.append(s.split(" "))
 
     for i in range(0, len(triangles), 3):
         s_face = []
         for peak in triangles[i: i+3]:
-            s = "v %f %f %f\n" % (peak[0], peak[1], peak[2])
+            s = "%f %f %f" % (peak[0], peak[1], peak[2])
             s_face.append(s)
         face_numbers = (adict[s_face[0]], adict[s_face[1]], adict[s_face[2]])
         if adict[s_face[0]] != adict[s_face[1]] \

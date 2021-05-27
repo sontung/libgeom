@@ -227,7 +227,7 @@ def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphe
     vis.add_geometry(original_mesh_wf)
 
     print("processing")
-    remove_list, face_status = remove_inside_mesh(vertices, faces)
+    remove_list, face_status, _, _ = remove_inside_mesh(vertices, faces)
     print("done processing")
 
     # write repaired mesh
