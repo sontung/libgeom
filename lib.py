@@ -202,8 +202,16 @@ def remove_inside_mesh(vertices, faces):
         if done:
             break
 
+    kept_face = np.zeros((sum(face_status.values()), 3), dtype=np.int)
+    ind = 0
+    for k in face_status:
+        if face_status[k] == 1:
+            kept_face[ind] = k
+            ind += 1
+
     print("done in", time.time()-start, "removing %d tri" % len(remove_list))
-    return remove_list, face_status
+
+    return remove_list, face_status, vertices, kept_face
 
 
 def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphere.obj"):
