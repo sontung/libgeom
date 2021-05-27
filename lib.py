@@ -10,7 +10,7 @@ from pykdtree.kdtree import KDTree as Fast_Kd_Tree
 from collections import namedtuple
 
 
-def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir="test_models/airbag.obj", cube_size=0.75, isovalue=4):
+def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None, if_vis=False, cube_size=0.75, isovalue=4):
     """
     reconstruct the surface of a point cloud using marching cube algorithm
     :param point_cloud:
@@ -54,20 +54,23 @@ def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir="test_models/a
                 tri, _ = marching_cube.march_cube(cell, isovalue)
                 triangles.extend(tri)
     print("created: ", len(triangles))
-    utils.create_obj_file(triangles, mesh_saved_dir)
+    if mesh_saved_dir is not None:
+        utils.create_obj_file(triangles, mesh_saved_dir)
 
     # visualization
-    original_mesh = o3d.io.read_triangle_mesh(mesh_saved_dir)
-    vis = o3d.visualization.Visualizer()
-    original_mesh_wf = o3d.geometry.LineSet.create_from_triangle_mesh(original_mesh)
-    original_mesh_wf.paint_uniform_color([0, 0, 0])
-    vis.create_window()
-    ctr = vis.get_view_control()
-    vis.add_geometry(original_mesh_wf)
-    while True:
-        ctr.rotate(10, 0.0)
-        vis.poll_events()
-        vis.update_renderer()
+    if if_vis:
+        original_mesh = o3d.io.read_triangle_mesh(mesh_saved_dir)
+        vis = o3d.visualization.Visualizer()
+        original_mesh_wf = o3d.geometry.LineSet.create_from_triangle_mesh(original_mesh)
+        original_mesh_wf.paint_uniform_color([0, 0, 0])
+        vis.create_window()
+        ctr = vis.get_view_control()
+        vis.add_geometry(original_mesh_wf)
+        while True:
+            ctr.rotate(10, 0.0)
+            vis.poll_events()
+            vis.update_renderer()
+    return triangles
 
 
 def surface_reconstruct_marching_cube_with_vis(point_cloud):
