@@ -77,8 +77,8 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
     :param point_cloud:
     :return:
     """
-    a_step = 5
-    isovalue = 4
+    a_step = 0.05
+    isovalue = 0.04
 
     bounding_box = point_cloud.get_axis_aligned_bounding_box()
     min_bound = bounding_box.min_bound-a_step
@@ -137,8 +137,6 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
 
                 vis.poll_events()
                 vis.update_renderer()
-
-    utils.create_obj_file(triangles)
 
 
 def remove_inside_mesh(vertices, faces, verbose=True):
