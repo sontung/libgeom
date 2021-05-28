@@ -3,44 +3,10 @@ import open3d as o3d
 import sys
 
 
-def visualize_unit_cube(cube, p_tri=None, added_cube_box=False):
-    """
-    draw a triangle and a cube in open3d (used in visualizing of the marching cube algorithm)
-    :param cube:
-    :param p_tri:
-    :return:
-    """
-    bb = o3d.geometry.AxisAlignedBoundingBox()
-    bb.min_bound = np.min(cube.xyz, axis=0)
-    bb.max_bound = np.max(cube.xyz, axis=0)
-
-    bb.color = (1, 0, 0)
-
-    geom = []
-    if added_cube_box:
-        geom.append(bb)
-
-    if p_tri is None:
-        # pass
-        return geom
-
-    lines = []
-    for i in range(0, len(p_tri), 3):
-        lines.extend([[i, i+1], [i+1, i+2], [i, i+2]])
-
-    line_color = [[0, 0, 0.5], [0, 0, 0.5], [0, 0, 0.5]]
-    line_pcd = o3d.geometry.LineSet()
-    line_pcd.lines = o3d.utility.Vector2iVector(lines)
-    line_pcd.colors = o3d.utility.Vector3dVector(line_color)
-    line_pcd.points = o3d.utility.Vector3dVector(p_tri)
-    geom.append(line_pcd)
-    return geom
-
-
 def triangles2mesh(triangles):
     vertices = []
     faces = []
-    idx = 1
+    idx = 0
     adict = {}
     for tri in triangles:
         s = "%f %f %f" % (tri[0], tri[1], tri[2])

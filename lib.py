@@ -10,14 +10,14 @@ from pykdtree.kdtree import KDTree as Fast_Kd_Tree
 from collections import namedtuple
 
 
-def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None, if_vis=False, cube_size=0.75, isovalue=4):
+def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None,
+                                      if_vis=False, cube_size=0.75, isovalue=4, verbose=True):
     """
     reconstruct the surface of a point cloud using marching cube algorithm
     :param point_cloud:
     :return:
     """
     a_step = cube_size
-    # isovalue = 4
 
     bounding_box = point_cloud.get_axis_aligned_bounding_box()
     min_bound = bounding_box.min_bound-a_step
@@ -28,9 +28,6 @@ def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None, if_vis=F
     x_steps = np.arange(min_bound[0], max_bound[0], a_step)
     y_steps = np.arange(min_bound[1], max_bound[1], a_step)
     z_steps = np.arange(min_bound[2], max_bound[2], a_step)
-
-    number_cube = x_steps.shape[0] * y_steps.shape[0] * z_steps.shape[0]
-    print(min_bound, max_bound, number_cube)
 
     cube_points2, stu2cnt, stu2cnt_dict = marching_cube.all_points_in_cube(x_steps, y_steps, z_steps, a_step)
     dist_dict, _ = a_tree.query(cube_points2, k=1)
@@ -53,7 +50,8 @@ def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None, if_vis=F
                 cell = GridCell(coord, distances)
                 tri, _ = marching_cube.march_cube(cell, isovalue)
                 triangles.extend(tri)
-    print("created: ", len(triangles))
+    if verbose:
+        print("created: ", len(triangles))
     if mesh_saved_dir is not None:
         utils.create_obj_file(triangles, mesh_saved_dir)
 
@@ -127,11 +125,11 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
                     dum = []
                     for _tri in tri:
                         dum.extend(_tri)
-                        for geom in utils.visualize_unit_cube(cell, tri):
+                        for geom in marching_cube.visualize_unit_cube(cell, tri):
                             vis.add_geometry(geom)
                             ctr.rotate(current_angle, 0.0)
                 else:
-                    for geom in utils.visualize_unit_cube(cell, None):
+                    for geom in marching_cube.visualize_unit_cube(cell, None):
                         vis.add_geometry(geom)
                         ctr.rotate(current_angle, 0.0)
                 ctr.rotate(5.0, 0.0)
@@ -143,7 +141,7 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
     utils.create_obj_file(triangles)
 
 
-def remove_inside_mesh(vertices, faces):
+def remove_inside_mesh(vertices, faces, verbose=True):
     """
     remove the mesh which is inside a bigger mesh
     :param vertices:
@@ -182,7 +180,6 @@ def remove_inside_mesh(vertices, faces):
                 d1 = distance_function(intersect, center)
                 d2 = distance_function(vertices[i], center)
                 if round(d1, 5) < round(d2, 5):  # remove
-                    print(d1, d2)
                     remove_list[(x, y, z)] = 1
                     remove_vertices[x] = 1
                     remove_vertices[y] = 1
@@ -208,8 +205,8 @@ def remove_inside_mesh(vertices, faces):
         if face_status[k] == 1:
             kept_face[ind] = k
             ind += 1
-
-    print("done in", time.time()-start, "removing %d tri" % len(remove_list))
+    if verbose:
+        print("done in", time.time()-start, "removing %d tri" % len(remove_list))
 
     return remove_list, face_status, vertices, kept_face
 
