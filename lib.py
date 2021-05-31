@@ -351,7 +351,7 @@ def loop_subdivision(vertices, triangles, save_name=None, vis=False):
             beta = 0.1875
             arr = np.array(vertices[neighbors]).sum(axis=0)
             vert = vertices[vert_id] * (1 - vert_deg * beta) + arr * beta
-        else:
+        elif vert_deg > 3:
             beta = 0.375/vert_deg
             arr = np.array(vertices[neighbors]).sum(axis=0)
             vert = vertices[vert_id] * (1 - vert_deg * beta) + arr * beta
