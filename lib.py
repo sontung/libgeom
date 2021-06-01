@@ -437,16 +437,21 @@ def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
 
     cnt = -1
     while len(faces) > 0:
-        check_vertices = list(faces[0])
+        check_vertices = {du: True for du in faces[0]}
         status = True
 
         cnt += 1
         flag = len(faces)
         while status:
             for face in faces:
-                if face[0] in check_vertices or face[1] in check_vertices or face[2] in check_vertices:
-                    check_vertices.extend(face)
+                if check_vertices.get(face[0], False) or check_vertices.get(face[1], False) or check_vertices.get(
+                        face[2], False):
                     face_status[(face[0], face[1], face[2])] = cnt
+
+                    check_vertices[face[0]] = True
+                    check_vertices[face[1]] = True
+                    check_vertices[face[2]] = True
+
             faces = [k for k, v in face_status.items() if v == -1]
             if len(faces) < flag:
                 flag = len(faces)
@@ -458,7 +463,7 @@ def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
     big_face = [k for k, v in face_status.items() if v == max_key]
 
     if verbose:
-        tqdm.write("removed %d triangles" % (size1-len(big_face)))
+        tqdm.write("removed %d triangles" % (size1 - len(big_face)))
 
     if if_vis:
         vis = o3d.visualization.Visualizer()
