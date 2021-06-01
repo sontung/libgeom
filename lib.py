@@ -5,9 +5,10 @@ import time
 import marching_cube
 import math_utils
 import open3d as o3d
+from tqdm import tqdm
 from scipy.spatial.distance import euclidean as distance_function
 from pykdtree.kdtree import KDTree as Fast_Kd_Tree
-from collections import namedtuple
+from collections import namedtuple, Counter
 
 
 def surface_reconstruct_marching_cube(point_cloud, mesh_saved_dir=None,
@@ -139,7 +140,7 @@ def surface_reconstruct_marching_cube_with_vis(point_cloud):
                 vis.update_renderer()
 
 
-def remove_inside_mesh(vertices, faces, verbose=True):
+def remove_inside_mesh(vertices, faces, verbose=True, if_vis=False):
     """
     remove the mesh which is inside a bigger mesh
     :param vertices:
@@ -204,7 +205,34 @@ def remove_inside_mesh(vertices, faces, verbose=True):
             kept_face[ind] = k
             ind += 1
     if verbose:
-        print("done in", time.time()-start, "removing %d tri" % len(remove_list))
+        tqdm.write("done in %f %s" % (time.time()-start, "removing %d tri" % len(remove_list)))
+
+    if if_vis:
+        big_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertices),
+                                             triangles=o3d.utility.Vector3iVector(faces))
+
+        other_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertices),
+                                               triangles=o3d.utility.Vector3iVector(kept_face))
+
+        big_tri = o3d.geometry.LineSet.create_from_triangle_mesh(big_mesh)
+        big_tri.paint_uniform_color(np.array([1.0, 0.0, 0.0]))
+
+        other_tri = o3d.geometry.LineSet.create_from_triangle_mesh(other_mesh)
+        other_tri.paint_uniform_color(np.array([0.0, 0.0, 1.0]))
+
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        ctr = vis.get_view_control()
+
+        vis.add_geometry(big_tri)
+        vis.add_geometry(other_tri)
+
+        angle = 0
+        while angle < 200:
+            ctr.rotate(10, 0.0)
+            vis.poll_events()
+            vis.update_renderer()
+            angle += 1
 
     return remove_list, face_status, vertices, kept_face
 
@@ -398,6 +426,69 @@ def loop_subdivision(vertices, triangles, save_name=None, vis=False):
             ang += 10
 
     return vertices2, triangles2
+
+
+def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
+    """
+    filter to keep only the biggest mesh
+    """
+    face_status = {(x, y, z): -1 for x, y, z in faces}
+    size1 = len(faces)
+
+    cnt = -1
+    while len(faces) > 0:
+        check_vertices = list(faces[0])
+        status = True
+
+        cnt += 1
+        flag = len(faces)
+        while status:
+            for face in faces:
+                if face[0] in check_vertices or face[1] in check_vertices or face[2] in check_vertices:
+                    check_vertices.extend(face)
+                    face_status[(face[0], face[1], face[2])] = cnt
+            faces = [k for k, v in face_status.items() if v == -1]
+            if len(faces) < flag:
+                flag = len(faces)
+            else:
+                status = False
+
+    values = Counter(list(face_status.values()))
+    max_key = max(values, key=values.get)
+    big_face = [k for k, v in face_status.items() if v == max_key]
+
+    if verbose:
+        tqdm.write("removed %d triangles" % (size1-len(big_face)))
+
+    if if_vis:
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        ctr = vis.get_view_control()
+
+        big_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertices),
+                                             triangles=o3d.utility.Vector3iVector(big_face))
+
+        big_tri = o3d.geometry.LineSet.create_from_triangle_mesh(big_mesh)
+        big_tri.paint_uniform_color(np.array([1.0, 0.0, 0.0]))
+
+        other_face = [k for k, v in face_status.items() if v != max_key]
+        if len(other_face) > 0:
+            other_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertices),
+                                                   triangles=o3d.utility.Vector3iVector(other_face))
+            other_tri = o3d.geometry.LineSet.create_from_triangle_mesh(other_mesh)
+            other_tri.paint_uniform_color(np.array([0.0, 0.0, 1.0]))
+            vis.add_geometry(other_tri)
+
+        vis.add_geometry(big_tri)
+
+        angle = 0
+        while angle < 100:
+            ctr.rotate(10, 0.0)
+            vis.poll_events()
+            vis.update_renderer()
+            angle += 1
+
+    return np.array(big_face)
 
 
 if __name__ == '__main__':
