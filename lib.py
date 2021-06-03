@@ -1,3 +1,5 @@
+import sys
+
 import meshio
 import numpy as np
 import utils
@@ -204,6 +206,9 @@ def remove_inside_mesh(vertices, faces, verbose=True, if_vis=False):
         if face_status[k] == 1:
             kept_face[ind] = k
             ind += 1
+
+    kept_vertices, kept_face = utils.enforce_vertices_by_faces(vertices, kept_face)
+
     if verbose:
         tqdm.write("done in %f %s" % (time.time()-start, "removing %d tri" % len(remove_list)))
 
@@ -234,7 +239,7 @@ def remove_inside_mesh(vertices, faces, verbose=True, if_vis=False):
             vis.update_renderer()
             angle += 1
 
-    return remove_list, face_status, vertices, kept_face
+    return remove_list, face_status, kept_vertices, kept_face
 
 
 def remove_inside_mesh_with_vis(vertices, faces, mesh_dir="test_models/test_sphere.obj"):
@@ -462,6 +467,8 @@ def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
     max_key = max(values, key=values.get)
     big_face = [k for k, v in face_status.items() if v == max_key]
 
+    new_vertices, new_faces = utils.enforce_vertices_by_faces(vertices, big_face)
+
     if verbose:
         tqdm.write("removed %d triangles" % (size1 - len(big_face)))
 
@@ -470,8 +477,8 @@ def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
         vis.create_window()
         ctr = vis.get_view_control()
 
-        big_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertices),
-                                             triangles=o3d.utility.Vector3iVector(big_face))
+        big_mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(new_vertices),
+                                             triangles=o3d.utility.Vector3iVector(new_faces))
 
         big_tri = o3d.geometry.LineSet.create_from_triangle_mesh(big_mesh)
         big_tri.paint_uniform_color(np.array([1.0, 0.0, 0.0]))
@@ -493,7 +500,7 @@ def mesh_filtering(vertices, faces, if_vis=False, verbose=False):
             vis.update_renderer()
             angle += 1
 
-    return np.array(big_face)
+    return new_vertices, new_faces, face_status, vertices
 
 
 if __name__ == '__main__':

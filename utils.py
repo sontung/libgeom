@@ -98,3 +98,18 @@ def read_obj_file_texture_coords(filename):
             x_, y_, z_ = map(lambda du: int(du.split("/")[0])-1, components[1:])
             face.append([x_, y_, z_])
     return np.array(vert).astype(np.float), np.array(face).astype(np.int)
+
+
+def enforce_vertices_by_faces(vertices, faces):
+    """
+    remove unnecessary vertices
+    :param vertices:
+    :param faces:
+    :return:
+    """
+
+    triangles = np.zeros((len(faces)*3, 3))
+    for i in range(len(faces) * 3):
+        triangles[i] = vertices[faces[i//3][i%3]]
+    new_vertices, new_face = triangles2mesh(triangles)
+    return new_vertices, new_face
